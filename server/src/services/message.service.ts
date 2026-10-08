@@ -132,3 +132,86 @@ export const markConversationAsRead = async (
     },
   );
 };
+
+export const getConversationSummaries = async (
+  userId: string,
+) => {
+  const connections = await Connection.find({
+    status: "ACCEPTED",
+    $or: [
+      {
+        requesterId: userId,
+      },
+      {
+        recipientId: userId,
+      },
+    ],
+  }).populate(
+    "requesterId recipientId",
+    "name photo headline",
+  );
+
+  const summaries = await Promise.all(
+    connections.map(async (connection) => {
+      const requester = connection.requesterId as unknown as {
+        _id: string;
+        name: string;
+        photo?: string;
+        headline?: string;
+      };
+
+      const recipient = connection.recipientId as unknown as {
+        _id: string;
+        name: string;
+        photo?: string;
+        headline?: string;
+      };
+
+      const otherUser =
+        requester._id.toString() === userId
+          ? recipient
+          : requester;
+
+      const lastMessage = await Message.findOne({
+        $or: [
+          {
+            senderId: userId,
+            recipientId: otherUser._id,
+          },
+          {
+            senderId: otherUser._id,
+            recipientId: userId,
+          },
+        ],
+      })
+        .sort({ createdAt: -1 })
+        .select(
+          "senderId recipientId content createdAt readAt",
+        );
+
+      const unreadCount = await Message.countDocuments({
+        senderId: otherUser._id,
+        recipientId: userId,
+        readAt: null,
+      });
+
+      return {
+        user: otherUser,
+        lastMessage,
+        unreadCount,
+      };
+    }),
+  );
+
+  return summaries.sort((a, b) => {
+    const dateA = a.lastMessage
+      ? new Date(a.lastMessage.createdAt).getTime()
+      : 0;
+
+    const dateB = b.lastMessage
+      ? new Date(b.lastMessage.createdAt).getTime()
+      : 0;
+
+    return dateB - dateA;
+  });
+};

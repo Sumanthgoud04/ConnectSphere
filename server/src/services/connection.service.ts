@@ -53,6 +53,7 @@ export const acceptConnectionRequest = async (
   }
 
   connection.status = "ACCEPTED";
+  connection.connectedAt = new Date();
 
   await connection.save();
 
@@ -195,4 +196,26 @@ export const getRelationship = async (
     status: connection.status,
     connectionId: connection._id.toString(),
   };
+};
+
+export const removeConnection = async (
+  connectionId: string,
+  userId: string,
+) => {
+  const connection = await Connection.findOne({
+    _id: connectionId,
+    status: "ACCEPTED",
+    $or: [
+      { requesterId: userId },
+      { recipientId: userId },
+    ],
+  });
+
+  if (!connection) {
+    return null;
+  }
+
+  await connection.deleteOne();
+
+  return connection;
 };

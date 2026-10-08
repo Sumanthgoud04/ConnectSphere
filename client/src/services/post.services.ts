@@ -7,6 +7,13 @@ export interface PostAuthor {
   headline?: string;
 }
 
+export interface PostLikeUser {
+  _id: string;
+  name: string;
+  photo?: string;
+  headline?: string;
+}
+
 export interface Post {
   _id: string;
   authorId: PostAuthor;
@@ -26,8 +33,25 @@ export const getFeed = async () => {
 export const createPost = async (data: {
   content: string;
   imageUrl?: string;
+  image?: File;
 }) => {
-  const response = await api.post("/posts", data);
+  const formData = new FormData();
+
+  formData.append("content", data.content);
+
+  if (data.imageUrl?.trim()) {
+    formData.append("imageUrl", data.imageUrl.trim());
+  }
+
+  if (data.image) {
+    formData.append("image", data.image);
+  }
+
+  const response = await api.post(
+    "/posts",
+    formData,
+  );
+
   return response.data;
 };
 
@@ -76,5 +100,20 @@ export const likeComment = async (commentId: string) => {
   const response = await api.post(
     `/posts/comments/${commentId}/like`,
   );
+  return response.data;
+};
+
+export const searchPosts = async (search: string) =>
+  (
+    await api.get("/posts/search", {
+      params: { search },
+    })
+  ).data;
+
+  export const getPostLikes = async (postId: string) => {
+  const response = await api.get(
+    `/posts/${postId}/likes`,
+  );
+
   return response.data;
 };

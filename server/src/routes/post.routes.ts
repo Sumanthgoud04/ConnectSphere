@@ -7,6 +7,8 @@ import {
   getFeedController,
   likePostController,
   getMyPostsController,
+  searchPostsController,
+  getPostLikesController,
 } from "../controllers/post.controller.js";
 import {
   createCommentController,
@@ -22,6 +24,7 @@ router.post("/",
   upload.single("image"),
   createPostController);
 router.get("/feed", getFeedController);
+router.get("/search", searchPostsController);
 router.get("/my-posts", getMyPostsController);
 router.delete("/:postId", deletePostController);
 
@@ -29,6 +32,7 @@ router.post("/:postId/like", likePostController);
 
 router.post("/:postId/comments", createCommentController);
 router.get("/:postId/comments", getCommentsController);
+router.get("/:postId/likes", getPostLikesController);
 
 router.delete(
   "/comments/:commentId",

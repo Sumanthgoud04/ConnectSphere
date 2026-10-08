@@ -46,3 +46,11 @@ export const markConversationAsRead = async (
 
   return response.data;
 };
+
+export const getConversationSummaries = async () => {
+  const response = await api.get(
+    "/messages/conversations",
+  );
+
+  return response.data;
+};

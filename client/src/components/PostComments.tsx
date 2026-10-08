@@ -1,6 +1,9 @@
 import { useEffect, useState } from "react";
 import { useSelector } from "react-redux";
+import { useNavigate } from "react-router-dom";
+
 import type { RootState } from "../store";
+
 import {
   createComment,
   deleteComment,
@@ -18,11 +21,7 @@ interface CommentAuthor {
 interface Comment {
   _id: string;
   postId: string;
-
-  // The backend normally returns a populated author object.
-  // This also safely handles an author ID or missing author.
   authorId?: CommentAuthor | string | null;
-
   parentCommentId?: string | null;
   content: string;
   likes: string[];
@@ -43,6 +42,8 @@ function PostComments({
     (state: RootState) => state.auth.user,
   );
 
+  const navigate = useNavigate();
+
   const [comments, setComments] = useState<Comment[]>([]);
   const [isOpen, setIsOpen] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
@@ -51,9 +52,14 @@ function PostComments({
   const [content, setContent] = useState("");
   const [error, setError] = useState("");
 
-  const [replyingTo, setReplyingTo] = useState<string | null>(
-    null,
-  );
+  const [replyingTo, setReplyingTo] = useState<
+    string | null
+  >(null);
+
+  // Stores the IDs of comments whose replies are expanded.
+  // Replies are collapsed by default.
+  const [expandedReplies, setExpandedReplies] =
+    useState<Set<string>>(new Set());
 
   // Safely normalize author data.
   const getCommentAuthor = (comment: Comment) => {
@@ -123,13 +129,9 @@ function PostComments({
       });
 
       if (response.success) {
-        // Clear the input immediately.
         setContent("");
         setReplyingTo(null);
 
-        // Reload comments from the backend.
-        // This ensures the new comment/reply has
-        // the correct populated author information.
         await loadComments();
       }
     } catch {
@@ -146,7 +148,6 @@ function PostComments({
 
       await deleteComment(commentId);
 
-      // Reload from backend so the UI updates immediately.
       await loadComments();
     } catch {
       setError("Failed to delete comment.");
@@ -168,8 +169,6 @@ function PostComments({
         return;
       }
 
-      // Reload from backend so the updated like
-      // count is immediately reflected.
       await loadComments();
     } catch {
       setError("Failed to update comment like.");
@@ -179,6 +178,14 @@ function PostComments({
   // Start replying to a comment.
   const handleReply = (commentId: string) => {
     setReplyingTo(commentId);
+
+    // Automatically expand the replies section when
+    // the user chooses to reply.
+    setExpandedReplies((current) => {
+      const next = new Set(current);
+      next.add(commentId);
+      return next;
+    });
 
     setTimeout(() => {
       document
@@ -190,6 +197,30 @@ function PostComments({
   // Cancel reply mode.
   const cancelReply = () => {
     setReplyingTo(null);
+  };
+
+  // Toggle replies for a comment.
+  const toggleReplies = (commentId: string) => {
+    setExpandedReplies((current) => {
+      const next = new Set(current);
+
+      if (next.has(commentId)) {
+        next.delete(commentId);
+      } else {
+        next.add(commentId);
+      }
+
+      return next;
+    });
+  };
+
+  // Navigate to the comment author's profile.
+  const handleAuthorClick = (authorId: string) => {
+    if (!authorId) {
+      return;
+    }
+
+    navigate(`/app/profile/${authorId}`);
   };
 
   // Get top-level comments.
@@ -210,6 +241,11 @@ function PostComments({
   ) => {
     const author = getCommentAuthor(comment);
 
+    const commentReplies = replies(comment._id);
+
+    const areRepliesExpanded =
+      expandedReplies.has(comment._id);
+
     const isLiked = user?.id
       ? comment.likes.includes(user.id)
       : false;
@@ -219,8 +255,9 @@ function PostComments({
       Boolean(author.id) &&
       user?.id === author.id;
 
-    const firstLetter =
-      author.name.charAt(0).toUpperCase();
+    const firstLetter = author.name
+      .charAt(0)
+      .toUpperCase();
 
     return (
       <div
@@ -229,7 +266,15 @@ function PostComments({
       >
         <div className="flex gap-3">
           {/* Avatar */}
-          <div className="flex h-9 w-9 shrink-0 items-center justify-center overflow-hidden rounded-full bg-primary text-sm font-bold text-white">
+          <button
+            type="button"
+            onClick={() =>
+              handleAuthorClick(author.id)
+            }
+            disabled={!author.id}
+            className="flex h-9 w-9 shrink-0 items-center justify-center overflow-hidden rounded-full bg-primary text-sm font-bold text-white transition hover:opacity-90 disabled:cursor-default"
+            aria-label={`View ${author.name}'s profile`}
+          >
             {author.photo ? (
               <img
                 src={author.photo}
@@ -239,20 +284,27 @@ function PostComments({
             ) : (
               firstLetter
             )}
-          </div>
+          </button>
 
           {/* Comment content */}
           <div className="min-w-0 flex-1">
             <div className="rounded-xl bg-background px-4 py-3">
               {/* Author row */}
               <div className="flex items-start justify-between gap-3">
-                <div>
-                  <p className="text-sm font-semibold text-text">
+                <div className="min-w-0">
+                  <button
+                    type="button"
+                    onClick={() =>
+                      handleAuthorClick(author.id)
+                    }
+                    disabled={!author.id}
+                    className="text-left text-sm font-semibold text-text transition hover:text-primary disabled:cursor-default"
+                  >
                     {author.name}
-                  </p>
+                  </button>
 
                   {author.headline && (
-                    <p className="mt-0.5 text-xs text-muted">
+                    <p className="mt-0.5 truncate text-xs text-muted">
                       {author.headline}
                     </p>
                   )}
@@ -265,7 +317,7 @@ function PostComments({
                     onClick={() =>
                       handleDelete(comment._id)
                     }
-                    className="text-xs font-semibold text-danger hover:underline"
+                    className="shrink-0 text-xs font-semibold text-danger hover:underline"
                   >
                     Delete
                   </button>
@@ -279,7 +331,7 @@ function PostComments({
             </div>
 
             {/* Comment actions */}
-            <div className="mt-2 flex items-center gap-4 px-2">
+            <div className="mt-2 flex flex-wrap items-center gap-4 px-2">
               {/* Like */}
               <button
                 type="button"
@@ -315,10 +367,30 @@ function PostComments({
               </span>
             </div>
 
-            {/* Replies */}
-            {replies(comment._id).map((reply) =>
-              renderComment(reply, true),
+            {/* Replies toggle */}
+            {commentReplies.length > 0 && (
+              <button
+                type="button"
+                onClick={() =>
+                  toggleReplies(comment._id)
+                }
+                className="mt-2 ml-2 text-xs font-semibold text-primary hover:underline"
+              >
+                {areRepliesExpanded
+                  ? "Hide replies"
+                  : `View ${commentReplies.length} ${
+                      commentReplies.length === 1
+                        ? "reply"
+                        : "replies"
+                    }`}
+              </button>
             )}
+
+            {/* Replies */}
+            {areRepliesExpanded &&
+              commentReplies.map((reply) =>
+                renderComment(reply, true),
+              )}
           </div>
         </div>
       </div>
@@ -335,7 +407,9 @@ function PostComments({
       {/* Comments toggle */}
       <button
         type="button"
-        onClick={() => setIsOpen((current) => !current)}
+        onClick={() =>
+          setIsOpen((current) => !current)
+        }
         className="text-sm font-semibold text-muted hover:text-primary"
       >
         {isOpen ? "Hide Comments" : "Comments"} (
@@ -360,17 +434,19 @@ function PostComments({
                   Replying to{" "}
                   <span className="font-semibold text-text">
                     {(() => {
-                      const parentComment = comments.find(
-                        (comment) =>
-                          comment._id === replyingTo,
-                      );
+                      const parentComment =
+                        comments.find(
+                          (comment) =>
+                            comment._id === replyingTo,
+                        );
 
                       if (!parentComment) {
                         return "comment";
                       }
 
-                      return getCommentAuthor(parentComment)
-                        .name;
+                      return getCommentAuthor(
+                        parentComment,
+                      ).name;
                     })()}
                   </span>
                 </p>

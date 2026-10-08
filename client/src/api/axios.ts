@@ -21,7 +21,6 @@ api.interceptors.response.use(
       | undefined;
 
     const isAuthRequest =
-      originalRequest?.url?.includes("/auth/me") ||
       originalRequest?.url?.includes("/auth/login") ||
       originalRequest?.url?.includes("/auth/signup") ||
       originalRequest?.url?.includes("/auth/refresh");

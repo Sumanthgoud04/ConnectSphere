@@ -23,3 +23,13 @@ export const getRelationship = async (userId: string) =>
 
 export const getConnectionCount = async () =>
   (await api.get("/connections/count")).data;
+
+export const removeConnection = async (
+  connectionId: string,
+) => {
+  const response = await api.delete(
+    `/connections/${connectionId}`,
+  );
+
+  return response.data;
+};

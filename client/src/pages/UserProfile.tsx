@@ -168,8 +168,19 @@ function UserProfile() {
 
           <div className="px-6 pb-6">
             <div className="-mt-12 flex items-end justify-between">
-              <div className="flex h-24 w-24 items-center justify-center rounded-full border-4 border-white bg-primary text-3xl font-bold text-white">
-                {user.name.charAt(0).toUpperCase()}
+              <div className="flex h-24 w-24 items-center justify-center overflow-hidden rounded-full border-4 border-white bg-primary text-3xl font-bold text-white">
+                {user.photo ? (
+                  <img
+                    src={user.photo}
+                    alt={`${user.name}'s profile`}
+                    className="h-full w-full object-cover object-center"
+                    onError={(event) => {
+                      event.currentTarget.style.display = "none";
+                    }}
+                  />
+                ) : (
+                  user.name.charAt(0).toUpperCase()
+                )}
               </div>
 
               <div className="flex gap-2">

@@ -7,6 +7,8 @@ import {
   getFeed,
   likePost,
   getMyPosts,
+  searchPosts,
+  getPostLikes,
 } from "../services/post.service.js";
 
 import { createPostSchema } from "../utils/validators/post.validator.js";
@@ -175,6 +177,70 @@ export const getMyPostsController = async (
     return res.status(500).json({
       success: false,
       message: "Failed to load your posts",
+    });
+  }
+};
+
+export const searchPostsController = async (
+  req: AuthenticatedRequest,
+  res: Response,
+) => {
+  try {
+    const search = String(
+      req.query.search ?? "",
+    ).trim();
+
+    if (!search) {
+      return res.status(200).json({
+        success: true,
+        data: {
+          posts: [],
+        },
+      });
+    }
+
+    const posts = await searchPosts(search);
+
+    return res.status(200).json({
+      success: true,
+      data: {
+        posts,
+      },
+    });
+  } catch {
+    return res.status(500).json({
+      success: false,
+      message: "Failed to search posts",
+    });
+  }
+};
+
+export const getPostLikesController = async (
+  req: AuthenticatedRequest,
+  res: Response,
+) => {
+  try {
+    const likes = await getPostLikes(
+      String(req.params.postId),
+    );
+
+    if (!likes) {
+      return res.status(404).json({
+        success: false,
+        message: "Post not found",
+      });
+    }
+
+    return res.status(200).json({
+      success: true,
+      data: {
+        likes,
+      },
+    });
+  } catch {
+    return res.status(500).json({
+      success: false,
+      message: "Failed to load post likes",
     });
   }
 };

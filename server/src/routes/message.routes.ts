@@ -1,6 +1,7 @@
 import { Router } from "express";
 import {
   getConversationController,
+  getConversationSummariesController,
   markConversationAsReadController,
   sendMessageController,
 } from "../controllers/message.controller.js";
@@ -11,6 +12,11 @@ const router = Router();
 router.use(authenticate);
 
 router.post("/", sendMessageController);
+
+router.get(
+  "/conversations",
+  getConversationSummariesController,
+);
 
 router.patch(
   "/:userId/read",

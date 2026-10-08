@@ -9,6 +9,7 @@ import {
   sendConnectionRequest,
   getRelationship,
   getConnectionCount,
+  removeConnection,
 } from "../services/connection.service.js";
 
 export const sendConnectionRequestController = async (
@@ -248,6 +249,36 @@ export const getRelationshipController = async (
     return res.status(500).json({
       success: false,
       message: "Failed to load relationship",
+    });
+  }
+};
+
+export const removeConnectionController = async (
+  req: AuthenticatedRequest,
+  res: Response,
+) => {
+  try {
+    const connection = await removeConnection(
+      String(req.params.connectionId),
+      req.user!.userId,
+    );
+
+    if (!connection) {
+      return res.status(404).json({
+        success: false,
+        message:
+          "Connection not found or you are not allowed to remove it",
+      });
+    }
+
+    return res.status(200).json({
+      success: true,
+      message: "Connection removed successfully",
+    });
+  } catch {
+    return res.status(500).json({
+      success: false,
+      message: "Failed to remove connection",
     });
   }
 };

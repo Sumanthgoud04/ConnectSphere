@@ -8,6 +8,7 @@ import {
   sendConnectionRequestController,
   getRelationshipController,
   getConnectionCountController,
+  removeConnectionController,
 } from "../controllers/connection.controller.js";
 import { authenticate } from "../middleware/auth.middleware.js";
 
@@ -30,6 +31,11 @@ router.get("/relationship/:userId", getRelationshipController);
 router.post("/:connectionId/accept", acceptConnectionRequestController);
 
 router.post("/:connectionId/reject", rejectConnectionRequestController);
+
+router.delete(
+  "/:connectionId",
+  removeConnectionController,
+);
 
 
 export default router;

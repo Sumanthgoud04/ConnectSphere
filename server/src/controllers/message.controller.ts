@@ -2,6 +2,7 @@ import type { Response } from "express";
 import type { AuthenticatedRequest } from "../middleware/auth.middleware.js";
 import {
   getConversation,
+  getConversationSummaries,
   markConversationAsRead,
   sendMessage,
 } from "../services/message.service.js";
@@ -73,6 +74,37 @@ export const sendMessageController = async (
     return res.status(500).json({
       success: false,
       message: "Failed to send message",
+    });
+  }
+};
+
+export const getConversationSummariesController = async (
+  req: AuthenticatedRequest,
+  res: Response,
+) => {
+  try {
+    const userId = req.user?.userId;
+
+    if (!userId) {
+      return res.status(401).json({
+        success: false,
+        message: "Unauthorized",
+      });
+    }
+
+    const conversations =
+      await getConversationSummaries(userId);
+
+    return res.status(200).json({
+      success: true,
+      data: {
+        conversations,
+      },
+    });
+  } catch {
+    return res.status(500).json({
+      success: false,
+      message: "Failed to load conversations",
     });
   }
 };

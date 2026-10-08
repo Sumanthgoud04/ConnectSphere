@@ -93,3 +93,36 @@ export const likePost = async (
     likesCount: post.likes.length + 1,
   };
 };
+
+export const searchPosts = async (search: string) => {
+  const trimmedSearch = search.trim();
+
+  if (!trimmedSearch) {
+    return [];
+  }
+
+  const posts = await Post.find({
+    content: {
+      $regex: trimmedSearch,
+      $options: "i",
+    },
+  })
+    .sort({ createdAt: -1 })
+    .populate("authorId", "name photo headline");
+
+  return posts;
+};
+
+export const getPostLikes = async (
+  postId: string,
+) => {
+  const post = await Post.findById(postId).populate(
+    "likes",
+    "name photo",
+  );
+
+  if (!post) {
+    return null;
+  }
+  return post.likes;
+};

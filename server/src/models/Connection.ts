@@ -9,6 +9,7 @@ export interface IConnection extends Document {
   requesterId: Types.ObjectId;
   recipientId: Types.ObjectId;
   status: ConnectionStatus;
+  connectedAt?: Date;
   createdAt: Date;
   updatedAt: Date;
 }
@@ -35,6 +36,10 @@ const connectionSchema = new Schema<IConnection>(
       default: "PENDING",
       required: true,
       index: true,
+    },
+
+    connectedAt: {
+      type: Date,
     },
   },
   {
